@@ -14,6 +14,7 @@ public interface IEmailEntity
 {
     string Sender { get; init; }
     string Recipient { get; init; }
+    // object Body {get; init;}
 }
 
 /// <summary>
@@ -21,8 +22,10 @@ public interface IEmailEntity
 /// C# records provide value equality and non-destructive mutation ('with' expressions).
 /// </summary>
 public abstract record EmailEntity(
-    string Sender = "",
-    string Recipient = ""
+    string Sender,
+    string Recipient,
+    string? Body,
+    object? Attachments
 ) : IEmailEntity;
 
 /// <summary>
@@ -31,8 +34,10 @@ public abstract record EmailEntity(
 public record WelcomeEmail(
     string Sender = "",
     string Recipient = "",
-    string ActivationCode = ""
-) : EmailEntity(Sender, Recipient);
+    string ActivationCode = "",
+    string Body = "<html> Hello Email</html>",
+    object? Attachments = null
+) : EmailEntity(Sender, Recipient, Body, Attachments ?? new object[] {0});
 
 
 // ============================================================================
@@ -53,6 +58,16 @@ public static class EmailEntityExtensions
     public static T WithRecipient<T>(this T entity, string recipient) where T : EmailEntity
     {
         return entity with { Recipient = recipient };
+    }
+
+    public static T WithBody<T>(this T entity, object body) where T : EmailEntity
+    {
+        return entity with { Body = body.ToString() };
+    }
+
+    public static T WithAttachments<T>(this T entity, object attachments) where T : EmailEntity
+    {
+        return entity with { Attachments = attachments };
     }
 }
 
@@ -173,7 +188,7 @@ public class Program
 
         // --- SCENARIO 1: Successful Send with Fluent Chaining ---
         Console.WriteLine("---> Scenario 1: Valid Email Flow");
-        
+
         var validEmail = new WelcomeEmail(ActivationCode: "ACT-12345")
             .WithSender("support@company.com")
             .WithRecipient("john.doe@example.com");
@@ -243,4 +258,3 @@ public class Program
         return Result<string, EmailError>.Ok($"Audit record written for ID {receipt.MessageId}");
     }
 }
- 
