@@ -1,0 +1,63 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional package version override (leave empty to use csproj version)'
+        required: false
+        type: string
+      nuget_user:
+        description: 'NuGet.org account/organization name (defaults to NUGET_USERNAME repo var or ChaoticDreams)'
+        required: false
+        type: string
+
+jobs:
+  publish:
+    name: Build, Pack & Push NuGet
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore Simple.Sdk.slnx
+
+    - name: Build Release
+      run: dotnet build Simple.Sdk.slnx --no-restore --configuration Release
+
+    - name: Run Tests
+      run: dotnet test Simple.Sdk.slnx --no-build --configuration Release --verbosity normal
+
+    - name: Pack NuGet Package
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          dotnet pack src/Simple.Sdk/Simple.Sdk.csproj --no-build --configuration Release -p:PackageVersion=${{ github.event.inputs.version }} --output ./nupkg
+        else
+          dotnet pack src/Simple.Sdk/Simple.Sdk.csproj --no-build --configuration Release --output ./nupkg
+        fi
+
+    - name: Authenticate with NuGet.org (Trusted Publishing)
+      id: login
+      uses: NuGet/login@v1
+      with:
+        user: ${{ inputs.nuget_user || vars.NUGET_USERNAME || 'ChaoticDreams' }}
+
+    - name: Push to NuGet.org
+      run: |
+        dotnet nuget push ./nupkg/*.nupkg \
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate

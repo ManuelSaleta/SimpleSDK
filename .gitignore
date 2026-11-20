@@ -1,2 +1,25 @@
-bin/*
-obj/*
+## .NET Core
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+
+## Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.DotSettings.user
+
+## Build and Package Artifacts
+*.nupkg
+*.snupkg
+nupkg/
+*.trx
+TestResults/
+
+## OS specific
+.DS_Store
+Thumbs.db
